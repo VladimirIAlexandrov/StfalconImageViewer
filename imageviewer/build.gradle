@@ -1,5 +1,8 @@
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
+plugins {
+    id 'com.android.library'
+    id 'kotlin-android'
+    id 'maven-publish' // Добавляем плагин, чтобы JitPack смог опубликовать артефакт
+}
 
 android {
     compileSdk 36
@@ -8,7 +11,13 @@ android {
         minSdkVersion 25
         targetSdkVersion 36
     }
+    
     namespace 'com.stfalcon.imageviewer'
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 
     kotlin {
         jvmToolchain(17)
@@ -22,16 +31,25 @@ dependencies {
 }
 
 repositories {
+    google()
+    mavenCentral()
     maven { url "https://jitpack.io" }
 }
 
-// Avoid Kotlin docs error
-tasks.withType(Javadoc) {
-    enabled = false
+// Этот блок критически важен — он объясняет JitPack, как собрать .aar файл
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+                artifactId = 'stfalcon-imageviewer'
+                version = '1.0.0'
+            }
+        }
+    }
 }
 
-// Remove javadoc related tasks
-task javadoc(type: Javadoc) {
-    source = android.sourceSets.main.java.srcDirs
-    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+// Избегаем ошибок при сборке документации на сервере JitPack
+tasks.withType(Javadoc) {
+    enabled = false
 }
