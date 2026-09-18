@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://apache.org
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,12 +24,8 @@ import android.view.WindowManager
 import android.widget.ImageView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
-import com.stfalcon.imageviewer.R
 import com.stfalcon.imageviewer.viewer.builder.BuilderData
 import com.stfalcon.imageviewer.viewer.view.ImageViewerView
-
 
 internal class ImageViewerDialog<T>(
     context: Context,
@@ -40,11 +36,10 @@ internal class ImageViewerDialog<T>(
     private val viewerView: ImageViewerView<T> = ImageViewerView(context)
     private var animateOpen = true
 
+    // Принудительно отдаем диалогу нативный полноэкранный стиль, 
+    // который ломает жесткие рамки контейнера модальных окон на уровне ОС
     private val dialogStyle: Int
-        get() = if (builderData.shouldStatusBarHide)
-            R.style.ImageViewerDialog_NoStatusBar
-        else
-            R.style.ImageViewerDialog_Default
+        get() = android.R.style.Theme_Translucent_NoTitleBar_Fullscreen
 
     init {
         setupViewerView()
@@ -62,31 +57,30 @@ internal class ImageViewerDialog<T>(
     fun show(animate: Boolean) {
         animateOpen = animate
 
+        // Сначала вызываем show, чтобы окно физически материализовалось в системе
+        dialog.show()
+
         val window = dialog.window ?: return
 
-        // 1. Включаем нативный Edge-to-Edge для диалога (запрещаем сжимать контент)
+        // Убираем скрытые отступы темы AlertDialog (делаем фон подложки прозрачным)
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+
+        // Включаем честный нативный Edge-to-Edge для этого окна
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        // 2. Делаем системные панели полностью прозрачными
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
-        window.navigationBarColor = android.graphics.Color.TRANSPARENT
-
-        // 3. Разрешаем окну заходить в зону выреза камеры (убирает черную полосу сверху)
+        // Разрешаем окну использовать область вокруг выреза камеры (челки)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             val layoutParams = window.attributes
             layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             window.attributes = layoutParams
         }
 
-        // 4. Растягиваем диалог на честные 100% ширины и высоты экрана
+        // Жестко растягиваем окно на весь экран, перебивая любые дефолтные лимиты
         window.setLayout(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT
         )
-
-        dialog.show()
     }
-
 
     fun close() {
         viewerView.close()
