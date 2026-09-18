@@ -64,46 +64,29 @@ internal class ImageViewerDialog<T>(
 
         val window = dialog.window ?: return
 
-        //hide the navigation bar by setting some flags
-        //first set 'not focusable' so that the other flags will work correctly
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-        )
+        // 1. Включаем нативный Edge-to-Edge для диалога (запрещаем сжимать контент)
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        // Haal controller op
-        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        // 2. Делаем системные панели полностью прозрачными
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
 
-        controller.hide(WindowInsetsCompat.Type.systemBars())
-
-        dialog.show()
-
-        window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
-
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            //when the current activity is edge-to-edge, the dialog will not extend behind the status bar on API 34 and below
-            //this will cause other views from the activity to show
-            //therefore we will show the status bar, which has a black background
-            val windowInsetsController =
-                WindowCompat.getInsetsController(window, window.decorView)
-            windowInsetsController.show(WindowInsetsCompat.Type.statusBars())
-        }
-
+        // 3. Разрешаем окну заходить в зону выреза камеры (убирает черную полосу сверху)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            //when the current activity is edge-to-edge, the dialog will not extend behind the cut out on API 34 and below
-            //this will cause other views from the activity to show
-            //therefore we will specify that the black background content should draw behind it
-            val  layoutParams = window.attributes
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
-            }
-            else {
-                layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
-            }
+            val layoutParams = window.attributes
+            layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             window.attributes = layoutParams
         }
+
+        // 4. Растягиваем диалог на честные 100% ширины и высоты экрана
+        window.setLayout(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT
+        )
+
+        dialog.show()
     }
+
 
     fun close() {
         viewerView.close()
